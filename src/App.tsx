@@ -16,7 +16,12 @@ import {
   History,
   TrendingUp,
   Stethoscope,
-  Heart
+  Heart,
+  Wallet,
+  PhoneCall,
+  ShieldCheck,
+  Camera,
+  X
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -31,7 +36,7 @@ import { dataStore, AgriLog, HealthRecord } from "@/src/services/dataService";
 import { predictCropYield, triageSymptoms } from "@/src/services/aiService";
 import { MiniVisuals } from "@/src/components/common/MiniVisuals";
 
-type Mode = "agri" | "health" | "startup";
+type Mode = "agri" | "health" | "finance" | "startup";
 
 export default function App() {
   const [mode, setMode] = useState<Mode>("startup");
@@ -40,8 +45,11 @@ export default function App() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setAgriLogs(dataStore.getAgriLogs());
-    setHealthRecords(dataStore.getHealthRecords());
+    async function fetchData() {
+      setAgriLogs(await dataStore.getAgriLogs());
+      setHealthRecords(await dataStore.getHealthRecords());
+    }
+    fetchData();
   }, []);
 
   const handleModeSwitch = (newMode: Mode) => {
@@ -51,13 +59,17 @@ export default function App() {
   return (
     <div className={cn(
       "min-h-screen transition-colors duration-500 font-sans",
-      mode === "health" ? "health-mode bg-sky-50" : mode === "agri" ? "bg-stone-50" : "bg-neutral-900"
+      mode === "health" ? "health-mode bg-sky-50" : 
+      mode === "agri" ? "bg-stone-50" : 
+      mode === "finance" ? "bg-emerald-50" : "bg-neutral-900"
     )}>
       {/* Top Bar - Simulated E-Ink Peripheral Bar */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="flex items-center space-x-2">
           <div className="bg-primary p-1.5 rounded-md">
-            {mode === "health" ? <Heart className="w-5 h-5 text-white" /> : <Sprout className="w-5 h-5 text-white" />}
+            {mode === "health" ? <Heart className="w-5 h-5 text-white" /> : 
+             mode === "finance" ? <Wallet className="w-5 h-5 text-white" /> : 
+             <Sprout className="w-5 h-5 text-white" />}
           </div>
           <span className="font-bold text-xl tracking-tight uppercase">Harmonize <span className="text-primary-foreground bg-primary px-1">EcoConnect</span></span>
         </div>
@@ -91,15 +103,25 @@ export default function App() {
           {mode === "agri" && (
             <AgriModeView 
               logs={agriLogs} 
-              onAddLog={(log) => setAgriLogs([dataStore.saveAgriLog(log), ...agriLogs])} 
+              onAddLog={async (log) => {
+                const newLog = await dataStore.saveAgriLog(log);
+                setAgriLogs([newLog as unknown as AgriLog, ...agriLogs]);
+              }} 
             />
           )}
 
           {mode === "health" && (
             <HealthModeView 
               records={healthRecords} 
-              onAddRecord={(rec) => setHealthRecords([dataStore.saveHealthRecord(rec), ...healthRecords])} 
+              onAddRecord={async (rec) => {
+                const newRec = await dataStore.saveHealthRecord(rec);
+                setHealthRecords([newRec as unknown as HealthRecord, ...healthRecords]);
+              }} 
             />
+          )}
+
+          {mode === "finance" && (
+            <FinanceModeView />
           )}
         </AnimatePresence>
       </main>
@@ -134,7 +156,7 @@ function StartupView({ onSelect }: { onSelect: (m: Mode) => void }) {
         <p className="text-neutral-400 max-w-md mx-auto">Unified platform for rural resilience. Select a dashboard to begin operations.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <button 
           onClick={() => onSelect("agri")}
           className="group relative h-64 overflow-hidden rounded-2xl border-2 border-neutral-800 bg-neutral-900 transition-all hover:border-green-500/50 hover:bg-neutral-800/50 focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -146,7 +168,7 @@ function StartupView({ onSelect }: { onSelect: (m: Mode) => void }) {
             </div>
             <div>
               <h2 className="text-2xl font-bold text-white uppercase tracking-tight">Agri Mode</h2>
-              <p className="text-neutral-500 mt-2 text-sm leading-snug">FarmConnect & TessyFarm Nexus. Predictive agriculture, yield logs, and credit tracking.</p>
+              <p className="text-neutral-500 mt-2 text-sm leading-snug">Farm Mode. AI crop advice & pest alerts.</p>
             </div>
           </div>
         </button>
@@ -162,10 +184,120 @@ function StartupView({ onSelect }: { onSelect: (m: Mode) => void }) {
             </div>
             <div>
               <h2 className="text-2xl font-bold text-white uppercase tracking-tight">Health Mode</h2>
-              <p className="text-neutral-500 mt-2 text-sm leading-snug">AI Health Navigator. Symptom triage, risk stratification, and secure patient data.</p>
+              <p className="text-neutral-500 mt-2 text-sm leading-snug">Clinical Navigator. Symptom triage.</p>
             </div>
           </div>
         </button>
+
+        <button 
+          onClick={() => onSelect("finance")}
+          className="group relative h-64 overflow-hidden rounded-2xl border-2 border-neutral-800 bg-neutral-900 transition-all hover:border-emerald-500/50 hover:bg-neutral-800/50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(16,185,129,0.15),transparent)]" />
+          <div className="relative p-8 h-full flex flex-col justify-between text-left">
+            <div className="bg-emerald-500/20 p-3 w-fit rounded-xl group-hover:bg-emerald-500/30 transition-colors">
+              <Wallet className="w-8 h-8 text-emerald-400" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-white uppercase tracking-tight">Finance</h2>
+              <p className="text-neutral-500 mt-2 text-sm leading-snug">Financial Access. USSD/SMS Micro-credit.</p>
+            </div>
+          </div>
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+function FinanceModeView() {
+  const [phone, setPhone] = useState("");
+  const [amount, setAmount] = useState("");
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleUSSDRequest = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("http://192.168.4.1:8000/ussd/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, amount: Number(amount) })
+      });
+      const data = await response.json();
+      setResult(data);
+    } catch (error) {
+      console.error("USSD Error:", error);
+      setResult({ status: "DENIED", reason: "Node Unreachable" });
+    }
+    setLoading(false);
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+      <div className="space-y-2">
+        <Badge className="bg-emerald-600 hover:bg-emerald-600">OFFLINE MICRO-CREDIT NODE</Badge>
+        <h2 className="text-4xl font-bold tracking-tighter text-emerald-950 uppercase">Financial Access</h2>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <Card className="border-2 border-emerald-200">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <PhoneCall className="w-5 h-5 text-emerald-600" />
+              USSD Gateway (Simulated)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Phone Number</Label>
+              <Input 
+                placeholder="e.g. +234..." 
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Requested Amount (₦)</Label>
+              <Input 
+                type="number" 
+                placeholder="0.00" 
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+            </div>
+            <Button className="w-full bg-emerald-600" onClick={handleUSSDRequest} disabled={loading}>
+              {loading ? "Processing..." : "Initiate USSD Loan Request"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <AnimatePresence>
+          {result && (
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+              <Card className={cn(
+                "border-2",
+                result.status === "APPROVED" ? "border-emerald-500 bg-emerald-50" : "border-red-500 bg-red-50"
+              )}>
+                <CardContent className="p-6 text-center space-y-4">
+                  <div className="bg-white w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-sm">
+                    {result.status === "APPROVED" ? <ShieldCheck className="w-8 h-8 text-emerald-500" /> : <AlertTriangle className="w-8 h-8 text-red-500" />}
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold uppercase tracking-tight">{result.status}</h3>
+                    <p className="text-sm text-muted-foreground">{result.status === "APPROVED" ? "On-device credit score: 75/100" : result.reason || "Score insufficient"}</p>
+                  </div>
+                  {result.status === "APPROVED" && (
+                    <div className="bg-white p-4 rounded-xl border border-emerald-200">
+                      <p className="text-xs font-bold text-emerald-600 uppercase">Terms</p>
+                      <p className="text-lg font-bold">₦{result.amount_eligible}</p>
+                      <p className="text-xs text-muted-foreground">{result.repayment_terms}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );
@@ -178,6 +310,7 @@ function AgriModeView({ logs, onAddLog }: { logs: AgriLog[], onAddLog: (l: any) 
   const [image, setImage] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -192,21 +325,31 @@ function AgriModeView({ logs, onAddLog }: { logs: AgriLog[], onAddLog: (l: any) 
 
   const handlePredict = async () => {
     setLoading(true);
-    const result = await predictCropYield(
-      { 
-        recentLogs: logs.slice(0, 5), 
-        currentInput: { type: logType, value: logValue, description } 
-      },
-      image || undefined
-    );
-    setPrediction(result);
-    setLoading(false);
+    try {
+      const result = await predictCropYield(
+        { 
+          recentLogs: logs.slice(0, 5), 
+          currentInput: { type: logType, value: logValue, description } 
+        },
+        image || undefined
+      );
+      if (result.error) {
+        alert(`NODE ADVICE: ${result.error}`);
+      } else {
+        setPrediction(result);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const clearForm = () => {
     setLogValue("");
     setDescription("");
     setImage(null);
+    setPrediction(null);
   };
 
   return (
@@ -242,7 +385,7 @@ function AgriModeView({ logs, onAddLog }: { logs: AgriLog[], onAddLog: (l: any) 
                 <div className="space-y-2">
                   <Label className="text-[10px] font-bold uppercase text-stone-500">Input Value / Status</Label>
                   <Input 
-                    placeholder="e.g. 24% humidity or 'Leaf Spot'" 
+                    placeholder="e.g. 24% humidity" 
                     className="h-10 text-sm border-2"
                     value={logValue}
                     onChange={(e) => setLogValue(e.target.value)}
@@ -251,46 +394,55 @@ function AgriModeView({ logs, onAddLog }: { logs: AgriLog[], onAddLog: (l: any) 
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase text-stone-500">Detailed Description (Optional)</Label>
+                <Label className="text-[10px] font-bold uppercase text-stone-500">Observation Notes</Label>
                 <textarea 
                   className="w-full p-3 border border-border rounded-lg bg-white text-sm min-h-[80px] focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-                  placeholder="Describe any symptoms or anomalies observed..."
+                  placeholder="Describe visual symptoms or soil smell/texture..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 items-center">
-                <div className="flex-1 w-full">
-                  <Label className="text-[10px] font-bold uppercase text-stone-500 block mb-2 text-left">Upload Visual Evidence</Label>
-                  <div className="relative group">
-                    <Input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleImageUpload}
-                      className="cursor-pointer"
-                    />
-                  </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase text-stone-500">Visual Evidence (Photo)</Label>
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full border-2 border-dashed border-stone-300 rounded-xl p-4 flex flex-col items-center justify-center gap-2 hover:border-primary cursor-pointer transition-all bg-stone-50/50"
+                >
+                  {image ? (
+                    <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-stone-200">
+                      <img src={image} className="w-full h-full object-cover" />
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setImage(null); }}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow-lg"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="bg-white p-3 rounded-full shadow-sm border border-stone-200">
+                        <Camera className="w-6 h-6 text-stone-400" />
+                      </div>
+                      <span className="text-xs font-medium text-stone-500 text-center leading-tight">Tap to Capture or<br/>Upload Photo</span>
+                    </>
+                  )}
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/*" 
+                    onChange={handleImageUpload} 
+                  />
                 </div>
-                {image && (
-                  <div className="w-20 h-20 rounded-lg border-2 border-stone-200 overflow-hidden bg-white shrink-0 relative">
-                    <img src={image} alt="Preview" className="w-full h-full object-cover" />
-                    <button 
-                      onClick={() => setImage(null)}
-                      className="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl-lg hover:bg-red-600 transition-colors"
-                    >
-                      <WifiOff className="w-3 h-3" /> {/* Using WifiOff as a close icon simulation */}
-                    </button>
-                  </div>
-                )}
               </div>
 
               <div className="flex gap-2 pt-2">
                 <Button 
                   className="flex-1 font-bold tracking-tight" 
                   onClick={() => {
-                    if (logValue) {
-                      onAddLog({ type: logType, value: logValue, description, image });
+                    if (logValue || image) {
+                      onAddLog({ type: logType, value: logValue || "Visual Log", description, image });
                       clearForm();
                     }
                   }}
@@ -400,6 +552,7 @@ function HealthModeView({ records, onAddRecord }: { records: HealthRecord[], onA
   const [image, setImage] = useState<string | null>(null);
   const [triage, setTriage] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -415,9 +568,18 @@ function HealthModeView({ records, onAddRecord }: { records: HealthRecord[], onA
   const handleTriage = async () => {
     if (!symptoms && !image) return;
     setLoading(true);
-    const result = await triageSymptoms(symptoms, image || undefined);
-    setTriage(result);
-    setLoading(false);
+    try {
+      const result = await triageSymptoms(symptoms, image || undefined);
+      if (result.error) {
+        alert(`NODE ADVICE: ${result.error}`);
+      } else {
+        setTriage(result);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSave = () => {
@@ -476,29 +638,38 @@ function HealthModeView({ records, onAddRecord }: { records: HealthRecord[], onA
               />
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 items-center">
-              <div className="flex-1 w-full">
-                <Label className="text-[10px] font-bold uppercase text-sky-600 block mb-2 text-left">Visual Diagnostics</Label>
-                <div className="relative group">
-                  <Input 
-                    type="file" 
-                    accept="image/*" 
-                    onChange={handleImageUpload}
-                    className="cursor-pointer border-sky-200"
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase text-sky-600 block mb-2 text-left">Visual Diagnostics (Photo)</Label>
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full border-2 border-dashed border-sky-200 rounded-xl p-4 flex flex-col items-center justify-center gap-2 hover:border-sky-500 cursor-pointer transition-all bg-sky-50/50"
+              >
+                {image ? (
+                  <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-sky-200">
+                    <img src={image} className="w-full h-full object-cover" />
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setImage(null); }}
+                      className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow-lg"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="bg-white p-3 rounded-full shadow-sm border border-sky-200">
+                      <Camera className="w-6 h-6 text-sky-400" />
+                    </div>
+                    <span className="text-xs font-medium text-sky-500 text-center leading-tight">Tap to Capture or<br/>Upload Clinical Photo</span>
+                  </>
+                )}
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept="image/*" 
+                  onChange={handleImageUpload} 
+                />
               </div>
-              {image && (
-                <div className="w-20 h-20 rounded-lg border-2 border-sky-200 overflow-hidden bg-white shrink-0 relative">
-                  <img src={image} alt="Preview" className="w-full h-full object-cover" />
-                  <button 
-                    onClick={() => setImage(null)}
-                    className="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl-lg hover:bg-red-600 transition-colors"
-                  >
-                    <WifiOff className="w-3 h-3" />
-                  </button>
-                </div>
-              )}
             </div>
 
             <div className="flex gap-2">
